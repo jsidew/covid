@@ -77,8 +77,8 @@ func main() {
 	start, err := actives(argCountry, argSince, database.Get("confirmed").M, database.Get("recovered").M, database.Get("dead").M)
 	exitif(err)
 
-	r := ratio(start, last, days)
-	f := forecast(last, r, days)
+	r := rate(start, last, days)
+	f := forecast(last, r, 30)
 
 	var growth string
 	g := (f/last - 1) * 100
@@ -114,7 +114,7 @@ func actives(country string, d date, confirmed matrix, subtracted ...matrix) (ca
 	return
 }
 
-func ratio(start, last, days float64) float64 {
+func rate(start, last, days float64) float64 {
 	return math.Pow(last/start, 1/days)
 }
 
