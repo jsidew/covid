@@ -12,7 +12,7 @@ import (
 
 // TODO sum (US, UK, etc.)
 
-var version = "0.0.1"
+var version = "0.0.2"
 
 const (
 	dateLayout      = "2006-01-02"
@@ -22,8 +22,10 @@ const (
 var (
 	db = ".covid"
 
-	country string
-	from    date
+	argDays uint = 1
+
+	argCountry string
+	argSince   date
 )
 
 func init() {
@@ -39,8 +41,9 @@ func init() {
 		panic(err)
 	}
 
-	flag.StringVar(&country, "country", country, "name of the country")
-	flag.Var(&from, "from", "date to start the estimate from - format: "+dateLayout)
+	flag.StringVar(&argCountry, "country", argCountry, "name of the country")
+	flag.Var(&argSince, "since", "date to start the estimate - format: "+dateLayout)
+	flag.UintVar(&argDays, "days", argDays, "estimate for the last n days - default to 1 day")
 
 }
 
@@ -55,49 +58,77 @@ func main() {
 	database := resources{}
 	database.Set(db, "confirmed", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
 	database.Set(db, "recovered", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")
-	database.Set(db, "deaths", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
+	database.Set(db, "dead", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
 
-	err := database.Load("confirmed", "recovered")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	err := database.Load("confirmed", "recovered", "dead")
+	exitif(err)
 
-	for _, country := range strings.Split(country, ",") {
-		start, last, days, err := actives(country, database.Get("confirmed").M, database.Get("recovered").M)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		fmt.Printf(
-			"%s's spread rate ratio is at %.2f, from %.0f to %.0f active cases, over %.0f days.\n",
-			strings.Title(country), ratio(start, last, days), start, last, days)
+	now, err := database.Get("confirmed").M.LastDate()
+	exitif(err)
+
+	if argSince.Time().IsZero() {
+		argSince = now.AddDays(-int(argDays))
 	}
+	days := argSince.DaysSince(now)
+
+	last, err := actives(argCountry, now, database.Get("confirmed").M, database.Get("recovered").M, database.Get("dead").M)
+	exitif(err)
+
+	start, err := actives(argCountry, argSince, database.Get("confirmed").M, database.Get("recovered").M, database.Get("dead").M)
+	exitif(err)
+
+	r := ratio(start, last, days)
+	f := forecast(last, r, days)
+
+	var growth string
+	g := (f/last - 1) * 100
+	if g > 0 {
+		growth = "+"
+	}
+	growth = fmt.Sprintf("%s%.0f%%", growth, g)
+
+	fmt.Printf("%s's active spread rate is at %.2f;", strings.ToTitle(argCountry), r)
+	fmt.Printf(" now there are %.0f active cases [%s];\n", last, now)
+	fmt.Printf("at the current rate, there will be %.0f active cases (%s) within the next 30 days", f, growth)
+	if r < 1 {
+		good := recession(last, r, 1)
+		fmt.Printf(", and only 1 active case will be left after %.0f days", good)
+	}
+	fmt.Println(".")
 }
 
-func actives(country string, confirmed, recovered matrix) (start, last, days float64, err error) {
-	c_start, err := confirmed.Cases(country, from)
+func actives(country string, d date, confirmed matrix, subtracted ...matrix) (cases float64, err error) {
+	var c int
+	c, err = confirmed.Cases(country, d)
 	if err != nil {
 		return
 	}
-	c_end, latest, err := confirmed.CasesLatest(country)
-	if err != nil {
-		return
+	for _, sub := range subtracted {
+		r, err := sub.Cases(country, d)
+		if err != nil {
+			return 0, err
+		}
+		c -= r
 	}
-	r_start, err := recovered.Cases(country, from)
-	if err != nil {
-		return
-	}
-	r_end, err := recovered.Cases(country, latest)
-	if err != nil {
-		return
-	}
-	start = float64(c_start - r_start)
-	last = float64(c_end - r_end)
-	days = latest.DaysSince(from)
+	cases = float64(c)
 	return
 }
 
 func ratio(start, last, days float64) float64 {
 	return math.Pow(last/start, 1/days)
+}
+
+func forecast(current, rate, days float64) float64 {
+	return current * math.Pow(rate, days)
+}
+
+func recession(current, rate, end float64) float64 {
+	return math.Log(end/current) / math.Log(rate)
+}
+
+func exitif(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }

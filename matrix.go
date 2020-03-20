@@ -35,23 +35,12 @@ func (m matrix) Cases(country string, d date) (int, error) {
 	return 0, nil
 }
 
-func (m matrix) CasesLatest(country string) (int, date, error) {
-	for _, row := range m[1:] {
-		if !strings.EqualFold(country, row[1]) {
-			continue
-		}
-		n, err := strconv.Atoi(row[len(row)-1])
-		if err != nil {
-			return 0, date{}, err
-		}
-		t, err := time.Parse(formatFromCSV, m[0][len(row)-1])
-		if err != nil {
-			return 0, date{}, err
-		}
-		return n, date(t), nil
+func (m matrix) LastDate() (date, error) {
+	t, err := time.Parse(formatFromCSV, m[0][len(m[0])-1])
+	if err != nil {
+		return date{}, err
 	}
-
-	return 0, date{}, nil
+	return date(t), nil
 }
 
 func (m matrix) Validate() error {

@@ -11,7 +11,11 @@ func (d date) Time() time.Time {
 }
 
 func (d date) DaysSince(s date) float64 {
-	return d.Time().Sub(s.Time()).Minutes() / 60 / 24
+	return -d.Time().Sub(s.Time()).Minutes() / 60 / 24
+}
+
+func (d date) AddDays(days int) date {
+	return date(d.Time().Add(time.Duration(days) * 24 * time.Hour))
 }
 
 func (d date) String() string {
