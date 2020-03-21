@@ -8,43 +8,66 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
+
+	"golang.org/x/text/message"
 )
 
 var version = "0.0.3"
 
 const (
 	dateLayout  = "2006-01-02"
-	cacheExpire = 12 * time.Hour
+	dfltTplName = "default.tpl"
+	fcastDays   = 30
+	cacheExpire = 8 * time.Hour
 	httpTimeout = 10 * time.Second
 )
 
 var (
-	db = ".covid"
-
-	argDays uint = 1
+	argDays uint = 7
 
 	argCountry string
 	argSince   date
+
+	tpl template.Template
+
+	db = ".covid"
+
+	funcMap = template.FuncMap{
+		"printf": func(lang string, format string, a ...interface{}) string {
+			p := message.NewPrinter(message.MatchLanguage(lang))
+			return p.Sprintf(format, a...)
+		},
+		"print": func(lang string, a ...interface{}) string {
+			p := message.NewPrinter(message.MatchLanguage(lang))
+			return p.Sprint(a...)
+		},
+		"fmtdate": func(layout string, d date) string {
+			return d.Time().Format(layout)
+		},
+	}
 )
 
 func init() {
+
+	// config folder
 	home, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
 	}
-
 	db = filepath.Join(home, db)
-
 	err = os.MkdirAll(db, os.ModeDir|0700)
 	if err != nil {
 		panic(err)
 	}
 
+	// command flags
 	flag.StringVar(&argCountry, "country", argCountry, "name of the country")
 	flag.Var(&argSince, "since", "date to start the estimate - format: "+dateLayout)
-	flag.UintVar(&argDays, "days", argDays, "estimate for the last n days - default to 1 day")
+	flag.UintVar(&argDays, "days", argDays, "estimate for the last n days")
 
+	// global settings
 	http.DefaultClient.Timeout = httpTimeout
 
 }
@@ -71,7 +94,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	err := database.Load("confirmed", "recovered", "dead")
+	err := loadTemplate(dfltTplName, &tpl)
+	exitif(err)
+
+	err = database.Load("confirmed", "recovered", "dead")
 	exitif(err)
 
 	now, err := database.Get("confirmed").M.LastDate()
@@ -89,7 +115,8 @@ func main() {
 	exitif(err)
 
 	r := rate(start, last, days)
-	f := forecast(last, r, 30)
+	f := forecast(last, r, fcastDays)
+	good := recession(last, r, 1)
 
 	var growth string
 	g := (f/last - 1) * 100
@@ -103,14 +130,25 @@ func main() {
 		country = strings.ToTitle(argCountry)
 	}
 
-	fmt.Printf("%s's active growth rate is at %.2f;", country, r)
-	fmt.Printf(" now there are %.0f active cases [%s];\n", last, now)
-	fmt.Printf("at the current rate, there will be %.0f active cases (%s) within the next 30 days", f, growth)
-	if r < 1 {
-		good := recession(last, r, 1)
-		fmt.Printf(", and only 1 active case will be left after %.0f days", good)
-	}
-	fmt.Println(".")
+	err = tpl.Execute(os.Stdout, &struct {
+		Country, ForecastGrowth string
+
+		Rate float64
+
+		ActiveCases, ForecastCases, ForecastDays, RecessionDays int
+
+		UpdateDate date
+	}{
+		Country:        country,
+		Rate:           r,
+		ActiveCases:    int(last),
+		UpdateDate:     now,
+		ForecastCases:  int(f),
+		ForecastGrowth: growth,
+		ForecastDays:   fcastDays,
+		RecessionDays:  int(good),
+	})
+	exitif(err)
 }
 
 func actives(country string, d date, confirmed matrix, subtracted ...matrix) (cases float64, err error) {
@@ -140,6 +178,41 @@ func forecast(current, rate, days float64) float64 {
 
 func recession(current, rate, end float64) float64 {
 	return math.Log(end/current) / math.Log(rate)
+}
+
+func loadTemplate(name string, tpl *template.Template) error {
+	err := func(name string) error {
+		f, err := os.OpenFile(filepath.Join(db, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.WriteString(defaultTpl)
+		return err
+	}(name)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	t, err := template.New("root").Funcs(funcMap).ParseGlob(filepath.Join(db, "*.tpl"))
+	if err != nil {
+		return err
+	}
+
+	if v := strings.TrimSpace(os.Getenv("COVID_TPL")); v != "" {
+		if !strings.HasSuffix(v, "tpl") {
+			v += ".tpl"
+		}
+		name = v
+	}
+	t = t.Lookup(name)
+	if t == nil {
+		return fmt.Errorf("template \"%s\" doesn't exist%s", name, t.DefinedTemplates())
+	}
+
+	*tpl = *t
+
+	return nil
 }
 
 func exitif(err error) {
