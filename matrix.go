@@ -32,10 +32,18 @@ func (m matrix) Cases(country string, d date) (int, error) {
 	// aggregate count by country
 	var sum int
 	for _, row := range m[1:] {
-		if !strings.EqualFold(country, row[1]) {
+		if country != "" && !strings.EqualFold(country, row[1]) {
 			continue
 		}
-		n, err := strconv.Atoi(row[colix])
+		val := strings.TrimSpace(row[colix])
+		if val == "" {
+			continue
+		}
+		_, err := strconv.ParseFloat(row[3], 64)
+		if err != nil { // ignore invalid rows
+			continue
+		}
+		n, err := strconv.Atoi(val)
 		if err != nil {
 			return 0, err
 		}

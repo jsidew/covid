@@ -85,7 +85,12 @@ func main() {
 	}
 	growth = fmt.Sprintf("%s%.0f%%", growth, g)
 
-	fmt.Printf("%s's active spread rate is at %.2f;", strings.ToTitle(argCountry), r)
+	country := "WORLD"
+	if argCountry != "" {
+		country = strings.ToTitle(argCountry)
+	}
+
+	fmt.Printf("%s's active spread rate is at %.2f;", country, r)
 	fmt.Printf(" now there are %.0f active cases [%s];\n", last, now)
 	fmt.Printf("at the current rate, there will be %.0f active cases (%s) within the next 30 days", f, growth)
 	if r < 1 {
