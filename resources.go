@@ -58,7 +58,7 @@ func (r resource) open() (matrix, error) {
 
 	if info, err := f.Stat(); err != nil {
 		return nil, err
-	} else if info.ModTime().Before(time.Now().Add(-refreshInterval)) {
+	} else if info.ModTime().Before(time.Now().Add(-cacheExpire)) {
 		f.Close()
 		goto update
 	}
@@ -72,6 +72,10 @@ update:
 	defer f.Close()
 
 	err = r.update(f)
+	if err != nil {
+		return nil, err
+	}
+	_, err = f.Seek(0, 0)
 	if err != nil {
 		return nil, err
 	}

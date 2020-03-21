@@ -14,9 +14,9 @@ import (
 var version = "0.0.3"
 
 const (
-	dateLayout      = "2006-01-02"
-	refreshInterval = 12 * time.Hour
-	httpTimeout     = 10 * time.Second
+	dateLayout  = "2006-01-02"
+	cacheExpire = 12 * time.Hour
+	httpTimeout = 10 * time.Second
 )
 
 var (
