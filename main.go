@@ -10,9 +10,7 @@ import (
 	"time"
 )
 
-// TODO sum (US, UK, etc.)
-
-var version = "0.0.2"
+var version = "0.0.3"
 
 const (
 	dateLayout      = "2006-01-02"
