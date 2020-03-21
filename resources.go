@@ -69,6 +69,8 @@ update:
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
+
 	err = r.update(f)
 	if err != nil {
 		return nil, err
@@ -80,7 +82,14 @@ parse:
 		return nil, err
 	}
 
-	return results, matrix(results).Validate()
+	m := matrix(results)
+	err = m.Validate()
+	if err != nil {
+		return nil, err
+	}
+	m = m.Clean()
+
+	return m, err
 }
 
 func (r resource) update(w io.Writer) error {

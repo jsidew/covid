@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,7 @@ var version = "0.0.3"
 const (
 	dateLayout      = "2006-01-02"
 	refreshInterval = 12 * time.Hour
+	httpTimeout     = 10 * time.Second
 )
 
 var (
@@ -43,6 +45,8 @@ func init() {
 	flag.Var(&argSince, "since", "date to start the estimate - format: "+dateLayout)
 	flag.UintVar(&argDays, "days", argDays, "estimate for the last n days - default to 1 day")
 
+	http.DefaultClient.Timeout = httpTimeout
+
 }
 
 func main() {
@@ -57,6 +61,15 @@ func main() {
 	database.Set(db, "confirmed", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
 	database.Set(db, "recovered", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")
 	database.Set(db, "dead", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
+
+	if flag.Arg(0) == "countries" {
+		err := database.Load("confirmed")
+		exitif(err)
+		for _, country := range database.Get("confirmed").M.Countries() {
+			fmt.Println(country)
+		}
+		os.Exit(0)
+	}
 
 	err := database.Load("confirmed", "recovered", "dead")
 	exitif(err)
@@ -90,7 +103,7 @@ func main() {
 		country = strings.ToTitle(argCountry)
 	}
 
-	fmt.Printf("%s's active spread rate is at %.2f;", country, r)
+	fmt.Printf("%s's active growth rate is at %.2f;", country, r)
 	fmt.Printf(" now there are %.0f active cases [%s];\n", last, now)
 	fmt.Printf("at the current rate, there will be %.0f active cases (%s) within the next 30 days", f, growth)
 	if r < 1 {
