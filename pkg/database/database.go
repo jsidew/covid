@@ -35,3 +35,29 @@ func (db *DB) Latest() (time.Time, error) {
 	}
 	return r.Latest()
 }
+
+func (db *DB) ActiveCases(country string, t time.Time, name string, subtracted ...string) (int, error) {
+	r, err := db.resources.Get(name)
+	if err != nil {
+		return 0, err
+	}
+
+	var c int
+	c, err = r.Cases(country, t)
+	if err != nil {
+		return 0, err
+	}
+	for _, sub := range subtracted {
+		r, err := db.resources.Get(sub)
+		if err != nil {
+			return 0, err
+		}
+		s, err := r.Cases(country, t)
+		if err != nil {
+			return 0, err
+		}
+		c -= s
+	}
+
+	return c, nil
+}

@@ -29,17 +29,18 @@ func TestDB(t *testing.T) {
 	t.Run("LatestTime", func(t *testing.T) {
 		d, err := db.Latest()
 		require.NoError(t, err, "error")
-		assert.Equal(t, time.Date(2020, time.March, 19, 0, 0, 0, 0, time.UTC), d, "time")
+		assert.Equal(t, date(2020, time.March, 19), d, "time")
 	})
 	t.Run("ActiveCases", func(t *testing.T) {
-		// (country string, d date, name string, subtractedNames ...string) (cases int, err error)
+		c, err := db.ActiveCases("italy", date(2020, time.March, 3), "confirmed", "recovered", "dead")
+		require.NoError(t, err, "error")
+		assert.Equal(t, 2263, c, "active cases")
 	})
 	t.Run("Countries", func(t *testing.T) {})
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	path := strings.ReplaceAll(r.URL.EscapedPath(), "/", "")
-	println(path)
 	b, err := env.Fixture(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -102,6 +103,10 @@ func (s *setting) Teardown() {
 	env = nil
 	err := os.RemoveAll(s.tmpdir)
 	panicif(err)
+}
+
+func date(year int, m time.Month, day int) time.Time {
+	return time.Date(year, m, day, 0, 0, 0, 0, time.UTC)
 }
 
 func panicif(err error) {

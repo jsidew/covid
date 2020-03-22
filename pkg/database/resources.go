@@ -95,7 +95,7 @@ parse:
 	if err != nil {
 		return nil, err
 	}
-	m = m.clean()
+	m = m.cleancopy()
 
 	return m, err
 }
