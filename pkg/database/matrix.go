@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -55,6 +56,22 @@ func (m matrix) Latest() (time.Time, error) {
 		return time.Time{}, err
 	}
 	return t, nil
+}
+
+func (m matrix) Countries() []string {
+	c := map[string]struct{}{}
+
+	for _, row := range m[1:] {
+		c[strings.TrimSpace(row[1])] = struct{}{}
+	}
+
+	list := []string{}
+	for k := range c {
+		list = append(list, k)
+	}
+	sort.Strings(list)
+
+	return list
 }
 
 func (m matrix) validate() error {

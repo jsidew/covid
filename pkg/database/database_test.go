@@ -27,16 +27,23 @@ func TestDB(t *testing.T) {
 	db.Set("recovered", "/recovered.csv")
 	db.Set("dead", "/deaths.csv")
 	t.Run("LatestTime", func(t *testing.T) {
-		d, err := db.Latest()
+		latest, err := db.Latest()
 		require.NoError(t, err, "error")
-		assert.Equal(t, date(2020, time.March, 19), d, "time")
+		assert.Equal(t, date(2020, time.March, 19), latest, "time")
 	})
 	t.Run("ActiveCases", func(t *testing.T) {
-		c, err := db.ActiveCases("italy", date(2020, time.March, 3), "confirmed", "recovered", "dead")
+		cases, err := db.ActiveCases("italy", date(2020, time.March, 3), "confirmed", "recovered", "dead")
 		require.NoError(t, err, "error")
-		assert.Equal(t, 2263, c, "active cases")
+		assert.Equal(t, 2263, cases, "active cases")
 	})
-	t.Run("Countries", func(t *testing.T) {})
+	t.Run("Countries", func(t *testing.T) {
+		countries, err := db.Countries()
+		require.NoError(t, err, "error")
+		require.Len(t, countries, 155, "total count")
+		assert.Equal(t, "Afghanistan", countries[0])
+		assert.Equal(t, "Zambia", countries[len(countries)-1])
+		assert.Equal(t, "Kazakhstan", countries[77])
+	})
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {

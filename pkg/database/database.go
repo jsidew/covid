@@ -61,3 +61,11 @@ func (db *DB) ActiveCases(country string, t time.Time, name string, subtracted .
 
 	return c, nil
 }
+
+func (db *DB) Countries() ([]string, error) {
+	r, err := db.resources.Get(db.first)
+	if err != nil {
+		return nil, err
+	}
+	return r.Countries(), nil
+}
