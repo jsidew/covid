@@ -1,6 +1,7 @@
 package database_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -22,28 +23,42 @@ var env *setting
 
 func TestDB(t *testing.T) {
 	defer setup().Teardown()
-	db := database.New(env.ServerURL(), env.TmpDir(), 1*time.Second)
-	db.Set("confirmed", "/confirmed.csv")
-	db.Set("recovered", "/recovered.csv")
-	db.Set("dead", "/deaths.csv")
-	t.Run("LatestTime", func(t *testing.T) {
-		latest, err := db.Latest()
-		require.NoError(t, err, "error")
-		assert.Equal(t, date(2020, time.March, 19), latest, "time")
-	})
-	t.Run("ActiveCases", func(t *testing.T) {
-		cases, err := db.ActiveCases("italy", date(2020, time.March, 3), "confirmed", "recovered", "dead")
-		require.NoError(t, err, "error")
-		assert.Equal(t, 2263, cases, "active cases")
-	})
-	t.Run("Countries", func(t *testing.T) {
-		countries, err := db.Countries()
-		require.NoError(t, err, "error")
-		require.Len(t, countries, 155, "total count")
-		assert.Equal(t, "Afghanistan", countries[0])
-		assert.Equal(t, "Zambia", countries[len(countries)-1])
-		assert.Equal(t, "Kazakhstan", countries[77])
-	})
+
+	const sleepfor = 50 * time.Millisecond
+
+	for _, dur := range []time.Duration{
+		1 * time.Second,
+		300 * time.Millisecond,
+		60 * time.Millisecond,
+		10 * time.Millisecond,
+	} {
+		desc := fmt.Sprintf("with %s expiration", dur)
+		t.Run(desc, func(t *testing.T) {
+			db := database.New(env.ServerURL(), env.TmpDir(), dur)
+			db.Set("confirmed", "/confirmed.csv")
+			db.Set("recovered", "/recovered.csv")
+			db.Set("dead", "/deaths.csv")
+			t.Run("LatestTime", func(t *testing.T) {
+				latest, err := db.Latest()
+				require.NoError(t, err, "error")
+				assert.Equal(t, date(2020, time.March, 19), latest, "time")
+			})
+			t.Run("ActiveCases", func(t *testing.T) {
+				cases, err := db.ActiveCases("italy", date(2020, time.March, 3), "confirmed", "recovered", "dead")
+				require.NoError(t, err, "error")
+				assert.Equal(t, 2263, cases, "active cases")
+			})
+			t.Run("Countries", func(t *testing.T) {
+				countries, err := db.Countries()
+				require.NoError(t, err, "error")
+				require.Len(t, countries, 155, "total count")
+				assert.Equal(t, "Afghanistan", countries[0])
+				assert.Equal(t, "Zambia", countries[len(countries)-1])
+				assert.Equal(t, "Kazakhstan", countries[77])
+			})
+		})
+		time.Sleep(sleepfor)
+	}
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {

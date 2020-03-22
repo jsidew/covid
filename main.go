@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"golang.org/x/text/message"
+
+	"github.com/jsidew/covid/pkg/database"
 )
 
 var version = "0.1.0"
@@ -32,7 +34,7 @@ var (
 
 	tpl template.Template
 
-	db = ".covid"
+	profile = ".covid"
 
 	funcMap = template.FuncMap{
 		"printf": func(lang string, format string, a ...interface{}) string {
@@ -56,8 +58,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	db = filepath.Join(home, db)
-	err = os.MkdirAll(db, os.ModeDir|0700)
+	profile = filepath.Join(home, profile)
+	err = os.MkdirAll(profile, os.ModeDir|0700)
 	if err != nil {
 		panic(err)
 	}
@@ -79,15 +81,16 @@ func main() {
 		fmt.Printf("covid v%s\n", version)
 		os.Exit(0)
 	}
-	database := resources{}
-	database.Set(db, "confirmed", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
-	database.Set(db, "recovered", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")
-	database.Set(db, "dead", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
+
+	db := database.New("https://raw.githubusercontent.com/CSSEGISandData/COVID-19", profile, cacheExpire)
+	db.Set("confirmed", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
+	db.Set("recovered", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")
+	db.Set("dead", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
 
 	if flag.Arg(0) == "countries" {
-		err := database.Load("confirmed")
+		countries, err := db.Countries()
 		exitif(err)
-		for _, country := range database.Get("confirmed").M.Countries() {
+		for _, country := range countries {
 			fmt.Println(country)
 		}
 		os.Exit(0)
@@ -96,29 +99,30 @@ func main() {
 	err := loadTemplate(dfltTplName, &tpl)
 	exitif(err)
 
-	err = database.Load("confirmed", "recovered", "dead")
-	exitif(err)
-
-	now, err := database.Get("confirmed").M.LastDate()
-	exitif(err)
+	var now date
+	{
+		l, err := db.Latest()
+		exitif(err)
+		now = date(l)
+	}
 
 	if argSince.Time().IsZero() {
 		argSince = now.AddDays(-int(argDays))
 	}
 	days := argSince.DaysSince(now)
 
-	last, err := actives(argCountry, now, database.Get("confirmed").M, database.Get("recovered").M, database.Get("dead").M)
+	last, err := db.ActiveCases(argCountry, now.Time(), "confirmed", "recovered", "dead")
 	exitif(err)
 
-	start, err := actives(argCountry, argSince, database.Get("confirmed").M, database.Get("recovered").M, database.Get("dead").M)
+	start, err := db.ActiveCases(argCountry, argSince.Time(), "confirmed", "recovered", "dead")
 	exitif(err)
 
-	r := rate(start, last, days)
-	f := forecast(last, r, fcastDays)
-	good := recession(last, r, 1)
+	r := rate(float64(start), float64(last), float64(days))
+	f := forecast(float64(last), r, fcastDays)
+	good := recession(float64(last), r, 1)
 
 	var growth string
-	g := (f/last - 1) * 100
+	g := (f/float64(last) - 1) * 100
 	if g > 0 {
 		growth = "+"
 	}
@@ -150,23 +154,6 @@ func main() {
 	exitif(err)
 }
 
-func actives(country string, d date, confirmed matrix, subtracted ...matrix) (cases float64, err error) {
-	var c int
-	c, err = confirmed.Cases(country, d)
-	if err != nil {
-		return
-	}
-	for _, sub := range subtracted {
-		r, err := sub.Cases(country, d)
-		if err != nil {
-			return 0, err
-		}
-		c -= r
-	}
-	cases = float64(c)
-	return
-}
-
 func rate(start, last, days float64) float64 {
 	return math.Pow(last/start, 1/days)
 }
@@ -181,7 +168,7 @@ func recession(current, rate, end float64) float64 {
 
 func loadTemplate(name string, tpl *template.Template) error {
 	err := func(name string) error {
-		f, err := os.OpenFile(filepath.Join(db, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+		f, err := os.OpenFile(filepath.Join(profile, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 		if err != nil {
 			return err
 		}
@@ -193,7 +180,7 @@ func loadTemplate(name string, tpl *template.Template) error {
 		return err
 	}
 
-	t, err := template.New("root").Funcs(funcMap).ParseGlob(filepath.Join(db, "*.tpl"))
+	t, err := template.New("root").Funcs(funcMap).ParseGlob(filepath.Join(profile, "*.tpl"))
 	if err != nil {
 		return err
 	}

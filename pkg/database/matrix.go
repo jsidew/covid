@@ -1,7 +1,9 @@
 package database
 
 import (
+	"encoding/csv"
 	"errors"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -11,6 +13,28 @@ import (
 const formatFromCSV = "1/2/06" // month/day/year
 
 type matrix [][]string
+
+func newMatrix(r io.Reader) (matrix, error) {
+	results, err := csv.NewReader(r).ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	if len(results) < 2 {
+		return nil, errors.New("results should have at least 2 rows")
+	}
+	if len(results[0]) < 5 {
+		return nil, errors.New("results should have at least 5 columns")
+	}
+	m := append(matrix{}, results[0])
+	for _, row := range results[1:] {
+		_, err := strconv.ParseFloat(row[3], 64)
+		if err != nil {
+			continue
+		}
+		m = append(m, row)
+	}
+	return m, nil
+}
 
 func (m matrix) Cases(country string, t time.Time) (int, error) {
 
@@ -72,26 +96,4 @@ func (m matrix) Countries() []string {
 	sort.Strings(list)
 
 	return list
-}
-
-func (m matrix) validate() error {
-	if len(m) < 2 {
-		return errors.New("results should have at least 2 rows")
-	}
-	if len(m[0]) < 5 {
-		return errors.New("results should have at least 5 columns")
-	}
-	return nil
-}
-
-func (m matrix) cleancopy() matrix {
-	new := append(matrix{}, m[0])
-	for _, row := range m[1:] {
-		_, err := strconv.ParseFloat(row[3], 64)
-		if err != nil {
-			continue
-		}
-		new = append(new, row)
-	}
-	return new
 }

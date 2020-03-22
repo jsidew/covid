@@ -2,7 +2,6 @@ package database
 
 import (
 	"bufio"
-	"encoding/csv"
 	"fmt"
 	"io"
 	"net/http"
@@ -85,19 +84,7 @@ update:
 	}
 
 parse:
-	results, err := csv.NewReader(f).ReadAll()
-	if err != nil {
-		return nil, err
-	}
-
-	m := matrix(results)
-	err = m.validate()
-	if err != nil {
-		return nil, err
-	}
-	m = m.cleancopy()
-
-	return m, err
+	return newMatrix(f)
 }
 
 func (r resource) update(w io.Writer) error {
