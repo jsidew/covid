@@ -14,7 +14,7 @@ import (
 	"golang.org/x/text/message"
 )
 
-var version = "0.0.3"
+var version = "0.1.0"
 
 const (
 	dateLayout  = "2006-01-02"
@@ -79,7 +79,6 @@ func main() {
 		fmt.Printf("covid v%s\n", version)
 		os.Exit(0)
 	}
-
 	database := resources{}
 	database.Set(db, "confirmed", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
 	database.Set(db, "recovered", "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")

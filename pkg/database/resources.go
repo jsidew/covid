@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"bufio"
@@ -11,39 +11,43 @@ import (
 	"time"
 )
 
+const filext = ".csv"
+
 type resources map[string]resource
 
 type resource struct {
 	name, url, filepath string
 
-	M matrix
+	expire time.Duration
+	mx     matrix
 }
 
-func (r resources) Set(db, name, url string) {
-	r[name] = resource{name: name, url: url, filepath: filepath.Join(db, name+".csv")}
-}
-
-func (r resources) Get(name string) resource {
-	return r[name]
-}
-
-func (r resources) Load(names ...string) error {
-	for _, name := range names {
-		res, ok := r[name]
-		if !ok {
-			return fmt.Errorf("unkown resource name `%s`", name)
-		}
-		m, err := res.open()
-		if err != nil {
-			return err
-		}
-		r[name] = res.cloneWithM(m)
+func (r resources) Set(db, name, url string, expire time.Duration) {
+	r[name] = resource{
+		name: name, url: url,
+		filepath: filepath.Join(db, name+filext),
+		expire:   expire,
 	}
-	return nil
+}
+
+func (r resources) Get(name string) (matrix, error) {
+	res, ok := r[name]
+	if !ok {
+		return nil, fmt.Errorf("unkown resource name `%s`", name)
+	}
+	if res.mx != nil {
+		return res.mx, nil
+	}
+	m, err := res.open()
+	if err != nil {
+		return nil, err
+	}
+	r[name] = res.cloneWithM(m)
+	return r[name].mx, nil
 }
 
 func (r resource) cloneWithM(m matrix) resource {
-	return resource{M: m, name: r.name, url: r.url, filepath: r.filepath}
+	return resource{mx: m, name: r.name, url: r.url, filepath: r.filepath}
 }
 
 func (r resource) open() (matrix, error) {
@@ -58,7 +62,7 @@ func (r resource) open() (matrix, error) {
 
 	if info, err := f.Stat(); err != nil {
 		return nil, err
-	} else if info.ModTime().Before(time.Now().Add(-cacheExpire)) {
+	} else if info.ModTime().Before(time.Now().Add(-r.expire)) {
 		f.Close()
 		goto update
 	}
@@ -87,11 +91,11 @@ parse:
 	}
 
 	m := matrix(results)
-	err = m.Validate()
+	err = m.validate()
 	if err != nil {
 		return nil, err
 	}
-	m = m.Clean()
+	m = m.clean()
 
 	return m, err
 }

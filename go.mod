@@ -2,4 +2,7 @@ module github.com/jsidew/covid
 
 go 1.13
 
-require golang.org/x/text v0.3.2
+require (
+	github.com/stretchr/testify v1.5.1
+	golang.org/x/text v0.3.2
+)
