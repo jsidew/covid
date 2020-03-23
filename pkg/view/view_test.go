@@ -18,7 +18,7 @@ const tempfolderpfx = "temp-"
 
 var env *setting
 
-func TestView(t *testing.T) {
+func Test(t *testing.T) {
 	defer setup(t).Teardown()
 	defer env.TmpList()
 

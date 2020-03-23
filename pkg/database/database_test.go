@@ -24,7 +24,7 @@ const (
 
 var env *setting
 
-func TestDB(t *testing.T) {
+func Test(t *testing.T) {
 	defer setup().Teardown()
 
 	const sleepfor = 50 * time.Millisecond

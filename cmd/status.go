@@ -24,13 +24,13 @@ package cmd
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/jsidew/covid/pkg/calc"
 	"github.com/jsidew/covid/pkg/view"
 )
 
@@ -92,9 +92,9 @@ func (c *statusCmd) run(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	r := rate(float64(start), float64(last), float64(days))
-	f := forecast(float64(last), r, fcastDays)
-	good := recession(float64(last), r, 1)
+	r := calc.Rate(float64(start), float64(last), float64(days))
+	f := calc.Forecast(float64(last), r, fcastDays)
+	good := calc.Period(float64(last), 1, r)
 
 	var growth string
 	g := (f/float64(last) - 1) * 100
@@ -135,18 +135,6 @@ func (c *statusCmd) cases() (start, last int, err error) {
 	}
 	start, err = db.ActiveCases(country, c.since.Time(), "confirmed", "recovered", "dead")
 	return
-}
-
-func rate(start, last, days float64) float64 {
-	return math.Pow(last/start, 1/days)
-}
-
-func forecast(current, rate, days float64) float64 {
-	return current * math.Pow(rate, days)
-}
-
-func recession(current, rate, end float64) float64 {
-	return math.Log(end/current) / math.Log(rate)
 }
 
 func (d date) Time() time.Time {
