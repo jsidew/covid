@@ -19,10 +19,28 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package main
 
-import "github.com/jsidew/covid/cmd"
+package cmd
 
-func main() {
-	cmd.Execute()
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
+func init() {
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "countries",
+		Short: "List names of the countries with COVID-19 cases",
+		RunE: func(*cobra.Command, []string) error {
+			countries, err := db.Countries()
+			if err != nil {
+				return err
+			}
+			for _, country := range countries {
+				fmt.Println(country)
+			}
+			return nil
+		},
+	})
 }

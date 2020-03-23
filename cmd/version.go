@@ -19,10 +19,21 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package main
 
-import "github.com/jsidew/covid/cmd"
+package cmd
 
-func main() {
-	cmd.Execute()
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
+func init() {
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "Prints covid's version",
+		Run: func(*cobra.Command, []string) {
+			fmt.Printf("covid v%s\n", version)
+		},
+	})
 }
