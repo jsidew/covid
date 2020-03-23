@@ -1,3 +1,4 @@
+// Package errors provides tools around errors.
 package errors
 
 import "fmt"

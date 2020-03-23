@@ -4,27 +4,24 @@ import (
 	"flag"
 	"fmt"
 	"math"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
-	"golang.org/x/text/message"
-
 	"github.com/jsidew/covid/pkg/database"
+	"github.com/jsidew/covid/pkg/view"
 )
 
-var version = "0.1.0"
+var version = "0.2.0"
 
 const (
 	dateLayout  = "2006-01-02"
-	dfltTplName = "default.tpl"
 	fcastDays   = 30
 	cacheExpire = 8 * time.Hour
-	httpTimeout = 10 * time.Second
 )
+
+type date time.Time
 
 var (
 	argDays uint = 7
@@ -32,23 +29,7 @@ var (
 	argCountry string
 	argSince   date
 
-	tpl template.Template
-
 	profile = ".covid"
-
-	funcMap = template.FuncMap{
-		"printf": func(lang string, format string, a ...interface{}) string {
-			p := message.NewPrinter(message.MatchLanguage(lang))
-			return p.Sprintf(format, a...)
-		},
-		"print": func(lang string, a ...interface{}) string {
-			p := message.NewPrinter(message.MatchLanguage(lang))
-			return p.Sprint(a...)
-		},
-		"fmtdate": func(layout string, d date) string {
-			return d.Time().Format(layout)
-		},
-	}
 )
 
 func init() {
@@ -68,10 +49,6 @@ func init() {
 	flag.StringVar(&argCountry, "country", argCountry, "name of the country")
 	flag.Var(&argSince, "since", "date to start the estimate - format: "+dateLayout)
 	flag.UintVar(&argDays, "days", argDays, "estimate for the last n days")
-
-	// global settings
-	http.DefaultClient.Timeout = httpTimeout
-
 }
 
 func main() {
@@ -96,7 +73,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	err := loadTemplate(dfltTplName, &tpl)
+	view, err := view.New(profile, view.TemplateName(os.Getenv("COVID_TPL")))
 	exitif(err)
 
 	var now date
@@ -133,19 +110,19 @@ func main() {
 		country = strings.ToTitle(argCountry)
 	}
 
-	err = tpl.Execute(os.Stdout, &struct {
+	err = view.Execute(os.Stdout, &struct {
 		Country, ForecastGrowth string
 
 		Rate float64
 
 		ActiveCases, ForecastCases, ForecastDays, RecessionDays int
 
-		UpdateDate date
+		UpdateDate time.Time
 	}{
 		Country:        country,
 		Rate:           r,
 		ActiveCases:    int(last),
-		UpdateDate:     now,
+		UpdateDate:     now.Time(),
 		ForecastCases:  int(f),
 		ForecastGrowth: growth,
 		ForecastDays:   fcastDays,
@@ -166,38 +143,28 @@ func recession(current, rate, end float64) float64 {
 	return math.Log(end/current) / math.Log(rate)
 }
 
-func loadTemplate(name string, tpl *template.Template) error {
-	err := func(name string) error {
-		f, err := os.OpenFile(filepath.Join(profile, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		_, err = f.WriteString(defaultTpl)
-		return err
-	}(name)
-	if err != nil && !os.IsExist(err) {
-		return err
-	}
+func (d date) Time() time.Time {
+	return time.Time(d)
+}
 
-	t, err := template.New("root").Funcs(funcMap).ParseGlob(filepath.Join(profile, "*.tpl"))
+func (d date) DaysSince(s date) float64 {
+	return -d.Time().Sub(s.Time()).Minutes() / 60 / 24
+}
+
+func (d date) AddDays(days int) date {
+	return date(d.Time().Add(time.Duration(days) * 24 * time.Hour))
+}
+
+func (d date) String() string {
+	return d.Time().Format(dateLayout)
+}
+
+func (d *date) Set(s string) error {
+	t, err := time.Parse(dateLayout, s)
 	if err != nil {
 		return err
 	}
-
-	if v := strings.TrimSpace(os.Getenv("COVID_TPL")); v != "" {
-		if !strings.HasSuffix(v, "tpl") {
-			v += ".tpl"
-		}
-		name = v
-	}
-	t = t.Lookup(name)
-	if t == nil {
-		return fmt.Errorf("template \"%s\" doesn't exist%s", name, t.DefinedTemplates())
-	}
-
-	*tpl = *t
-
+	*d = date(t)
 	return nil
 }
 

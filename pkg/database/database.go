@@ -3,13 +3,20 @@ package database
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/jsidew/covid/internal/errors"
 )
 
+const (
+	prefix      = "database"
+	httpTimeout = 10 * time.Second
+)
+
 func init() {
-	errors.Prefix = "database"
+	errors.Prefix = prefix
+	http.DefaultClient.Timeout = httpTimeout
 }
 
 // EndpointName is a unique name identifying a web ednpoint and its related resource.

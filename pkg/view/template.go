@@ -1,6 +1,21 @@
-package main
+package view
 
-var defaultTpl = `{{ .Country }}:
+import (
+	"text/template"
+	"time"
+
+	"golang.org/x/text/message"
+)
+
+const (
+	// Extension used for template files
+	Extension = ".tpl"
+
+	// Name of the default template file, without extension.
+	Name TemplateName = "default"
+
+	// Template default content.
+	Template = `{{ .Country }}:
 {{-      if lt .Rate 0.95 }} resolving
 {{- else if lt .Rate 1.00 }} resolving slowly
 {{- else if lt .Rate 1.05 }} under control
@@ -14,3 +29,16 @@ var defaultTpl = `{{ .Country }}:
 {{- end -}}
 . [source: https://github.com/jsidew/covid]
 `
+)
+
+var funcMap = template.FuncMap{
+	"printf": func(lang string, format string, a ...interface{}) string {
+		return message.NewPrinter(message.MatchLanguage(lang)).Sprintf(format, a...)
+	},
+	"print": func(lang string, a ...interface{}) string {
+		return message.NewPrinter(message.MatchLanguage(lang)).Sprint(a...)
+	},
+	"fmtdate": func(layout string, t time.Time) string {
+		return t.Format(layout)
+	},
+}
