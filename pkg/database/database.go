@@ -4,7 +4,13 @@ package database
 import (
 	"fmt"
 	"time"
+
+	"github.com/jsidew/covid/internal/errors"
 )
+
+func init() {
+	errors.Prefix = "database"
+}
 
 // EndpointName is a unique name identifying a web ednpoint and its related resource.
 type EndpointName string
@@ -51,7 +57,7 @@ func (db *DB) Set(n EndpointName, endpoint string) {
 func (db *DB) Latest() (time.Time, error) {
 	r, err := db.resources.Get(db.first.String())
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, errors.W(err)
 	}
 	return r.Latest()
 }
@@ -64,22 +70,22 @@ and other cases (minuends) that are no more considered active.
 func (db *DB) ActiveCases(country string, t time.Time, subtrahend EndpointName, minuends ...EndpointName) (int, error) {
 	r, err := db.resources.Get(subtrahend.String())
 	if err != nil {
-		return 0, err
+		return 0, errors.W(err)
 	}
 
 	var c int
 	c, err = r.Cases(country, t)
 	if err != nil {
-		return 0, err
+		return 0, errors.W(err)
 	}
 	for _, min := range minuends {
 		r, err := db.resources.Get(min.String())
 		if err != nil {
-			return 0, err
+			return 0, errors.W(err)
 		}
 		s, err := r.Cases(country, t)
 		if err != nil {
-			return 0, err
+			return 0, errors.W(err)
 		}
 		c -= s
 	}
@@ -91,7 +97,7 @@ func (db *DB) ActiveCases(country string, t time.Time, subtrahend EndpointName, 
 func (db *DB) Countries() ([]string, error) {
 	r, err := db.resources.Get(db.first.String())
 	if err != nil {
-		return nil, err
+		return nil, errors.W(err)
 	}
 	return r.Countries(), nil
 }

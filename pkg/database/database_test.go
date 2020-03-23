@@ -17,7 +17,10 @@ import (
 	"github.com/jsidew/covid/pkg/database"
 )
 
-const fixfolder = "fixture"
+const (
+	tempfolderpfx = "temp-"
+	fixfolder     = "fixture"
+)
 
 var env *setting
 
@@ -89,7 +92,7 @@ func setup() *setting {
 	}
 	env.fix.dir, err = filepath.Abs(fixfolder)
 	panicif(err)
-	env.tmpdir, err = ioutil.TempDir(env.fix.dir, "temp")
+	env.tmpdir, err = ioutil.TempDir(env.fix.dir, tempfolderpfx)
 	panicif(err)
 	env.server = httptest.NewServer(http.HandlerFunc(handler))
 	return env
