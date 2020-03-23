@@ -48,7 +48,12 @@ func New(origin, cachedir string, cacheExpiration time.Duration) *DB {
 	return &DB{origin: origin, cachedir: cachedir, expiration: cacheExpiration}
 }
 
-// Set a new named endpoint to a web resource.
+/*
+Set a new named endpoint to a web resource.
+The first resource that is set is considered the one with all cases,
+while the next resources are the ones with cases that can be subtracted
+from first one's cases to give active cases (DB.ActiveCases).
+*/
 func (db *DB) Set(n EndpointName, endpoint string) {
 	if db.resources == nil {
 		db.resources = resources{}
@@ -69,13 +74,9 @@ func (db *DB) Latest() (time.Time, error) {
 	return r.Latest()
 }
 
-/*
-ActiveCases affected, selected by country and time.
-The active cases is a difference between total cases (subtrahend)
-and other cases (minuends) that are no more considered active.
-*/
-func (db *DB) ActiveCases(country string, t time.Time, subtrahend EndpointName, minuends ...EndpointName) (int, error) {
-	r, err := db.resources.Get(subtrahend.String())
+// ActiveCases affected, selected by country and time.
+func (db *DB) ActiveCases(country string, t time.Time) (int, error) {
+	r, err := db.resources.Get(db.first.String())
 	if err != nil {
 		return 0, errors.W(err)
 	}
@@ -85,12 +86,15 @@ func (db *DB) ActiveCases(country string, t time.Time, subtrahend EndpointName, 
 	if err != nil {
 		return 0, errors.W(err)
 	}
-	for _, min := range minuends {
-		r, err := db.resources.Get(min.String())
+	for _, res := range db.resources {
+		if res.Name() == db.first.String() {
+			continue
+		}
+		m, err := res.Get()
 		if err != nil {
 			return 0, errors.W(err)
 		}
-		s, err := r.Cases(country, t)
+		s, err := m.Cases(country, t)
 		if err != nil {
 			return 0, errors.W(err)
 		}

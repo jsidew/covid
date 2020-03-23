@@ -129,11 +129,11 @@ func (c *statusCmd) cases() (start, last int, err error) {
 	if strings.EqualFold(country, "world") {
 		country = ""
 	}
-	last, err = db.ActiveCases(country, c.now.Time(), "confirmed", "recovered", "dead")
+	last, err = db.ActiveCases(country, c.now.Time())
 	if err != nil {
 		return
 	}
-	start, err = db.ActiveCases(country, c.since.Time(), "confirmed", "recovered", "dead")
+	start, err = db.ActiveCases(country, c.since.Time())
 	return
 }
 

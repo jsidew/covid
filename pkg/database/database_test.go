@@ -47,7 +47,7 @@ func Test(t *testing.T) {
 				assert.Equal(t, date(2020, time.March, 19), latest, "time")
 			})
 			t.Run("ActiveCases", func(t *testing.T) {
-				cases, err := db.ActiveCases("italy", date(2020, time.March, 3), "confirmed", "recovered", "dead")
+				cases, err := db.ActiveCases("italy", date(2020, time.March, 3))
 				require.NoError(t, err, "error")
 				assert.Equal(t, 2263, cases, "active cases")
 			})

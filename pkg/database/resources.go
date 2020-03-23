@@ -34,19 +34,28 @@ func (r resources) Get(name string) (matrix, error) {
 	if !ok {
 		return nil, fmt.Errorf("unkown resource name `%s`", name)
 	}
-	if res.mx != nil {
-		return res.mx, nil
-	}
-	m, err := res.open()
+	m, err := res.Get()
 	if err != nil {
 		return nil, err
 	}
-	r[name] = res.cloneWithM(m)
-	return r[name].mx, nil
+	r[name] = res
+	return m, nil
 }
 
-func (r resource) cloneWithM(m matrix) resource {
-	return resource{mx: m, name: r.name, url: r.url, filepath: r.filepath}
+func (r *resource) Get() (matrix, error) {
+	if r.mx != nil {
+		return r.mx, nil
+	}
+	m, err := r.open()
+	if err != nil {
+		return nil, err
+	}
+	r.mx = m
+	return r.mx, nil
+}
+
+func (r resource) Name() string {
+	return r.name
 }
 
 func (r resource) open() (matrix, error) {

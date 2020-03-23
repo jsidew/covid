@@ -39,6 +39,7 @@ var version = "0.3.0"
 
 const (
 	cacheExpire = 8 * time.Hour
+	dbOrigin    = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19"
 )
 
 var (
@@ -80,7 +81,7 @@ func initConfig() {
 	err = os.MkdirAll(profile, os.ModeDir|0700)
 	exitif(err)
 
-	db = database.New("https://raw.githubusercontent.com/CSSEGISandData/COVID-19", profile, cacheExpire)
+	db = database.New(dbOrigin, profile, cacheExpire)
 	db.Set("confirmed", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
 	db.Set("recovered", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")
 	db.Set("dead", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
