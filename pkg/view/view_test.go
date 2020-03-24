@@ -42,26 +42,21 @@ func Test(t *testing.T) {
 	t.Run("execute", func(t *testing.T) {
 		b := strings.Builder{}
 		defer b.Reset()
-		env.TmpCreate("custom.tpl", []byte(`Number: {{ print "en" .Number }}
-Floating: {{ printf "en" "%.4f" .Floating  }}
-Date: {{ fmtdate "2 Jan 2006" .Date }}`))
+		env.TmpCreate("custom.tpl", []byte(`Cases: {{ print "en" .Current.Cases }}
+Rate: {{ printf "en" "%.4f" .Current.Rate  }}
+Date: {{ fmtdate "2 Jan 2006" .Updated }}`))
 		env.TmpCreate("test.tpl", nil)
 		v, err := view.New(env.TmpDir(), "custom")
 		require.NoError(t, err, "New error")
-		err = v.Execute(&b, &struct {
-			Number   int
-			Floating float64
-			Date     time.Time
-		}{
-			Number:   1435678,
-			Floating: 12343.45945857,
-			Date:     time.Date(2020, 03, 23, 11, 41, 55, 0, time.UTC),
-		})
+		v.Current.Cases = 1435678
+		v.Current.Rate = 12343.45945857
+		v.Updated = time.Date(2020, 03, 23, 11, 41, 55, 0, time.UTC)
+		err = v.Execute(&b)
 		require.NoError(t, err, "View.Execute error")
 		rows := strings.Split(b.String(), "\n")
 		require.Len(t, rows, 3, "view rows")
-		assert.Equal(t, `Number: 1,435,678`, rows[0], "final view: print")
-		assert.Equal(t, `Floating: 12,343.4595`, rows[1], "final view: printf")
+		assert.Equal(t, `Cases: 1,435,678`, rows[0], "final view: print")
+		assert.Equal(t, `Rate: 12,343.4595`, rows[1], "final view: printf")
 		assert.Equal(t, `Date: 23 Mar 2020`, rows[2], "final view: fmtdate")
 	})
 
