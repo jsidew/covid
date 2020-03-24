@@ -102,7 +102,7 @@ func (c *statusCmd) run(_ *cobra.Command, args []string) error {
 	v.Forecast.Cases = f
 	v.Forecast.Days = fcastDays
 	v.Forecast.Growth = growth
-	if !c.compare.Time().IsZero() {
+	{
 		r2 := calc.Rate(float64(pre), float64(last), float64(c.compareDays))
 		r3 := calc.Rate(r2, r, float64(c.compareDays-c.days))
 		recovery := calc.Period(r, 0.94, r3)
@@ -115,7 +115,7 @@ func (c *statusCmd) run(_ *cobra.Command, args []string) error {
 		v.Recovery.DaysToPeak = peak
 		v.Recovery.PeakCases = peakCases
 
-		improving := r < r2
+		improving := r3 < 0.998
 		status := view.OutOfControl
 
 		if r < 0.94 {
@@ -132,7 +132,9 @@ func (c *statusCmd) run(_ *cobra.Command, args []string) error {
 			status = view.HardToControl
 		}
 
-		v.Status = status
+		v.Status.Score = status
+		v.Status.Resolving = status == view.Resolving || status == view.ResolvingSlowly
+		v.Status.Improving = improving && !v.Status.Resolving
 
 	}
 

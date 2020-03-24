@@ -16,18 +16,26 @@ const (
 
 	// Template default content.
 	Template = `{{ .Country }}:
-{{-      if eq .Status 1 }} resolving
-{{- else if eq .Status 2 }} resolving slowly
-{{- else if eq .Status 3 }} under control
-{{- else if eq .Status 4 }} barely under control
-{{- else if eq .Status 5 }} loosing control
-{{- else if eq .Status 6 }} hard to control
+{{-      if eq .Status.Score 1 }} resolving
+{{- else if eq .Status.Score 2 }} resolving slowly
+{{- else if eq .Status.Score 3 }} under control
+{{- else if eq .Status.Score 4 }} barely under control
+{{- else if eq .Status.Score 5 }} loosing control
+{{- else if eq .Status.Score 6 }} hard to control
 {{- else }} out of control
-{{- end }}. Active cases of #Covid_19 are compounding daily by {{ printf "en" "%.2f" .Current.Rate }}; as of {{ fmtdate "2 Jan 2006" .Updated }}, there are {{ print "en" .Current.Cases }} active cases. Projections: {{ printf "en" "%.0f" .Forecast.Cases }} cases ({{ .Forecast.Growth }}) in {{ print "en" .Forecast.Days }} days
-{{- if lt .Current.Rate 1.0 -}}
-; only 1 active case left in {{ print "en" .Recovery.DaysTo1 }} days
 {{- end -}}
-. [source: https://github.com/jsidew/covid]
+. #Covid_19 active cases {{ if lt .Current.Rate 1.0 }}dropping{{ else }}growing{{ end }} daily by {{ printf "en" "%.2f" .Current.Rate }}
+{{- if .Status.Improving -}}
+, w/dim factor of {{ printf "en" "%.3f" .Comparison.RateOfRates }}
+{{- end -}}
+. {{ print "en" .Current.Cases }} active cases, as of {{ fmtdate "2 Jan 2006" .Updated }}. Projection:
+{{- if .Status.Improving }} recovering will start in {{ printf "en" "%.0f" .Recovery.DaysToStart }} days with a peak of {{ printf "en" "%.0f" .Recovery.PeakCases }} cases before it
+{{- else }} {{ printf "en" "%.0f" .Forecast.Cases }} cases in {{ print "en" .Forecast.Days }} days
+{{- end -}}
+{{- if .Status.Resolving -}}
+; only 1 active case left in {{ printf "en" "%.0f" .Recovery.DaysTo1 }} days
+{{- end -}}
+. [src: https://github.com/jsidew/covid]
 `
 )
 

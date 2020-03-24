@@ -49,7 +49,11 @@ type View struct {
 	Country string
 	Updated time.Time
 
-	Status uint8
+	Status struct {
+		Score     uint8
+		Resolving bool
+		Improving bool
+	}
 
 	Current struct {
 		Rate  float64
