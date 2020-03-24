@@ -16,3 +16,9 @@ func Forecast(current, rate, period float64) float64 {
 func Period(current, final, rate float64) float64 {
 	return math.Log(final/current) / math.Log(rate)
 }
+
+// Forecast3D it's like Forecast but the rate varies at its own rate (rateOfRate).
+func Forecast3D(current, rate, rateOfRate, period float64) float64 {
+	return current * math.Pow(rate, period) *
+		math.Pow(rateOfRate, (period*period+period)/2)
+}

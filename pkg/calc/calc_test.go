@@ -1,15 +1,14 @@
 package calc_test
 
 import (
+	"fmt"
+	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/jsidew/covid/pkg/calc"
 )
-
-/*
-These tests don't check assertions.
-They just print the output of the tested functions.
-*/
 
 var table = []struct {
 	first, second, third float64
@@ -29,6 +28,38 @@ var table = []struct {
 	{4, 12, -34},
 	{12, 4, 34},
 }
+
+func Test(t *testing.T) {
+	var (
+		past, current float64 = 12543, 35456
+		per1, per2    float64 = 13, 21
+	)
+	rate := calc.Rate(past, current, per1)
+	final := calc.Forecast(current, rate, per2)
+	assert.Equal(t, rate, calc.Rate(current, final, per2))
+	assert.Equal(t, current, math.Round(calc.Forecast(past, rate, per1)))
+	assert.Equal(t, per1, math.Round(calc.Period(past, current, rate)))
+	assert.Equal(t, per2, math.Round(calc.Period(current, final, rate)))
+}
+
+func TestForecast3D(t *testing.T) {
+	var a, p, r, r2 float64 = 735, 23, 1.11, 0.995
+
+	r3 := r
+	n := a
+	for i := 1; i <= int(p); i++ {
+		r3 *= r2
+		n *= r3
+	}
+
+	f := calc.Forecast3D(a, r, r2, p)
+	assert.Equal(t, fmt.Sprintf("%.4f", n), fmt.Sprintf("%.4f", f))
+}
+
+/*
+The following tests don't check assertions.
+They just print the output of the tested functions.
+*/
 
 func TestRate(t *testing.T) {
 	t.Log("past, current, period")
