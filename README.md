@@ -126,9 +126,9 @@ Supported parameters are
 ### Functions
 
 Supported function, other than Golang standard ones, are
-* `printf`, _lang string, format string, a ...interface{}_, format a list of values according to a [formatting syntax](https://pkg.go.dev/golang.org/x/text/message?tab=doc) and language (e.g. "en", "it", etc.);
-* `print`, _lang string, a ...interface{}_, format a list of values according to a [language](https://pkg.go.dev/golang.org/x/text/message?tab=doc) (e.g. "en", "it", etc.);
-* `fmtdate`, _layout string, t time.Time_, format a time, like `.Updated` (see previous paragraph), according to [Time.Format](https://pkg.go.dev/time?tab=doc#Time.Format);
+* `printf`(_lang string, format string, a ...interface{}_), format a list of values according to a [formatting syntax](https://pkg.go.dev/golang.org/x/text/message?tab=doc) and language (e.g. "en", "it", etc.);
+* `print`(_lang string, a ...interface{}_), format a list of values according to a [language](https://pkg.go.dev/golang.org/x/text/message?tab=doc) (e.g. "en", "it", etc.);
+* `fmtdate`(_layout string, t time.Time_), format a time, like `.Updated` (see previous paragraph), according to [Time.Format](https://pkg.go.dev/time?tab=doc#Time.Format);
 
 ## Virus Control Scale (VCS) Algorithm Explained
 
