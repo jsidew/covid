@@ -20,8 +20,8 @@ const (
 {{- else if eq .Status.Score 2 }} resolving slowly
 {{- else if eq .Status.Score 3 }} under control
 {{- else if eq .Status.Score 4 }} barely under control
-{{- else if eq .Status.Score 5 }} loosing control
-{{- else if eq .Status.Score 6 }} hard to control
+{{- else if eq .Status.Score 5 }} hard to control
+{{- else if eq .Status.Score 6 }} loosing control
 {{- else }} out of control
 {{- end -}}
 . #Covid_19 active cases {{ if lt .Current.Rate 1.0 }}dropping{{ else }}growing{{ end }} daily by {{ printf "en" "%.2f" .Current.Rate }}
@@ -35,7 +35,7 @@ const (
 {{- if .Status.Resolving -}}
 ; only 1 active case left in {{ printf "en" "%.0f" .Recovery.DaysTo1 }} days
 {{- end -}}
-. [src: https://github.com/jsidew/covid]
+. @jsidew [src: https://github.com/jsidew/covid]
 `
 )
 

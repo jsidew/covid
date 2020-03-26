@@ -26,11 +26,11 @@ const (
 	// BarelyUnderControl status
 	BarelyUnderControl
 
-	// LoosingControl status
-	LoosingControl
-
 	// HardToControl status
 	HardToControl
+
+	// LoosingControl status
+	LoosingControl
 
 	// OutOfControl status
 	OutOfControl
