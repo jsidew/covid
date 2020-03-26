@@ -1,6 +1,10 @@
 # covid
 
-`covid` is a [Golang](https://golang.org/) application that wants to illustrate quickly and effectively how well (or badly) different countries are controlling the COVID-19 spread. For that I developed what I call the Virus Control Scale, ranging from 1 to 7, where 7 is the worst.
+`covid` is a tool to educate people (governments included - some I think they are still underestimating) about how bad it can get if the virus spread stays uncontrolled. You can use this tool to generate messages to be shared on social media platforms. You can customise your message, also in your language of choice. Contributions and ideas are very welcome. In other words, the purpose is to use numbers to help monitoring quickly and effectively how well (or badly) different countries are controlling the COVID-19 spread.
+
+[LinkedIn Article about Covid]()
+
+`covid` is written in [Golang](https://golang.org/), and works around what I call the Virus Control Scale, ranging from 1 to 7, where 7 is the worst.
 
 ## Contents
 * [Acknowledgments](#acknowledgments)
