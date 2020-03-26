@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -66,7 +67,12 @@ func (m matrix) Cases(country string, t time.Time) (int, error) {
 		}
 		n, err := strconv.Atoi(val)
 		if err != nil {
-			return 0, err
+			// fallback
+			f, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				return 0, nil
+			}
+			n = int(math.Round(f))
 		}
 		sum += n
 	}

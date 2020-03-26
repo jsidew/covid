@@ -35,11 +35,11 @@ import (
 	"github.com/jsidew/covid/pkg/database"
 )
 
-var version = "0.3.0"
+var version = "0.3.1"
 
 const (
 	cacheExpire = 8 * time.Hour
-	dbOrigin    = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19"
+	dbOrigin    = "https://raw.githubusercontent.com/bumbeishvili/covid19-daily-data"
 )
 
 var (
@@ -82,9 +82,9 @@ func initConfig() {
 	exitif(err)
 
 	db = database.New(dbOrigin, profile, cacheExpire)
-	db.Set("confirmed", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
-	db.Set("recovered", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")
-	db.Set("dead", "/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
+	db.Set("confirmed", "/master/time_series_19-covid-Confirmed.csv")
+	db.Set("recovered", "/master/time_series_19-covid-Recovered.csv")
+	db.Set("dead", "/master/time_series_19-covid-Deaths.csv")
 }
 
 func exitif(err error) {
