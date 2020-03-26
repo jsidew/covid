@@ -2,7 +2,7 @@
 
 `covid` is a tool to educate people (governments included - some I think they are still underestimating) about how bad it can get if the virus spread stays uncontrolled. You can use this tool to generate messages to be shared on social media platforms. You can customise your message, also in your language of choice. Contributions and ideas are very welcome. In other words, the purpose is to use numbers to help monitoring quickly and effectively how well (or badly) different countries are controlling the COVID-19 spread.
 
-[LinkedIn Article about Covid]()
+[LinkedIn Article about Covid](https://www.linkedin.com/pulse/world-control-covid-19-jacopo-salvestrini)
 
 `covid` is written in [Golang](https://golang.org/), and works around what I call the Virus Control Scale, ranging from 1 to 7, where 7 is the worst.
 
@@ -41,7 +41,7 @@ ITALY: barely under control.
 Projection: recovering will start in 52 days with a peak of 270,215 cases before it.
 ```
 
-### Example: Custom Days 
+### Example: Custom Days
 
 You can change the last days to consider for the spread rate and the last days for the control rate. As you notice, the output is slightly different.
 ```
@@ -183,7 +183,7 @@ x = (r/s)^(1/(q-p))
 
 ### Forecast with Moving Rate
 
-* `f`: cases in the future 
+* `f`: cases in the future
 * `z`: period in the future between `c` and `f`
 
 ```

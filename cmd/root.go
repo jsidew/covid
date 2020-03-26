@@ -35,7 +35,7 @@ import (
 	"github.com/jsidew/covid/pkg/database"
 )
 
-var version = "0.3.1"
+var version = "1.0.0-beta.1"
 
 const (
 	cacheExpire = 8 * time.Hour

@@ -35,7 +35,7 @@ const (
 {{- if .Status.Resolving -}}
 ; only 1 active case left in {{ printf "en" "%.0f" .Recovery.DaysTo1 }} days
 {{- end -}}
-. @jsidew [src: https://github.com/jsidew/covid]
+. @jsidew [src: https://a.jsidew.net/covid]
 `
 )
 
