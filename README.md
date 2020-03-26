@@ -98,7 +98,37 @@ Use "covid [command] --help" for more information about a command.
 
 ## Customise
 
-TODO
+You can customise the message output from `covid status`. Under your home folder (`~` or `$HOME` under Unix OSs like Mac and Linux; `%userprofile%` for Windows) there is a folder that is created the first time you run `covid`. The folder is called `.covid`. Under this folder, there is a file named `default.tpl`, which you can change as you like, following [Golang's text/template](https://pkg.go.dev/text/template?tab=doc) syntax. You can also create multiple templates (with exptension `.tpl`) and choose the one you prefer with the environment variable `COVID_TPL`:
+```
+$ COVID_TPL=test covid status
+Hello WORLD: 7@1.1540755042768218x1.0018865162982553
+```
+
+### Parameters
+
+Supported parameters are
+* `.Country`, _string_, the name of the country;
+* `.Updated`, _time.Time_, the date when the data source was last updated;
+* `.Status.Score`, _uint8_, the score (from 1 to 7) of the VCS;
+* `.Status.Resolving`, _bool_, if the situation is resolving;
+* `.Status.Improving`, _bool_, if the situation is improving (note that it's not resolving, the spread is still growing, but less day by day);
+* `.Current.Rate`, _float64_, the current spread rate;
+* `.Current.Cases`, _int_, the latest number of active cases as stored in the data source;
+* `.Comparison.Rate`, _float64_, the spread rate from greater time-span;
+* `.Comparison.RateOfRates`, _float64_, the rate of growth between `.Current.Cases` and `.Comparison.Rate` (if the current rate is lower than the rate from a greater time span, than the situation is improving and under control);
+* `.Recovery.DaysTo1`, _float64_, number of days necessary to have only 1 active case left;
+* `.Recovery.DaysToStart`, _float64_, number of days necessary to start recovering, considering `.Comparison.RateOfRates`;
+* `.Recovery.DaysToPeak`, _float64_, number of days necessary to reach a peak of active cases (right before resolution starts), considering `.Comparison.RateOfRates`;
+* `.Recovery.PeakCases`, _float64_, peak number of active cases, considering `.Comparison.RateOfRates`;
+* `.Forecast.Cases`, _float64_, number of cases that will be reached after `.Forecast.Days` at `.Current.Rate`;
+* `.Forecast.Days`, _int_, number of days considered to reach `.Forecast.Cases`.
+
+### Functions
+
+Supported function, other than Golang standard ones, are
+* `printf`, _lang string, format string, a ...interface{}_, format a list of values according to a [formatting syntax](https://pkg.go.dev/golang.org/x/text/message?tab=doc) and language (e.g. "en", "it", etc.);
+* `print`, _lang string, a ...interface{}_, format a list of values according to a [language](https://pkg.go.dev/golang.org/x/text/message?tab=doc) (e.g. "en", "it", etc.);
+* `fmtdate`, _layout string, t time.Time_, format a time, like `.Updated` (see previous paragraph), according to [Time.Format](https://pkg.go.dev/time?tab=doc#Time.Format);
 
 ## Virus Control Scale (VCS) Algorithm Explained
 
