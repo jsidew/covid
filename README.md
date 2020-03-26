@@ -52,6 +52,17 @@ ITALY: barely under control.
 Projection: recovering will start in 48 days with a peak of 368,528 cases before it.
 ```
 
+### Example: Set a Date
+
+Instead of setting days you can set a date, for example if after that date there was an important decision from a country's government.
+```
+$ covid status 'Czech Republic' -a '2020-03-12'
+CZECH REPUBLIC: hard to control.
+#Covid_19 active cases growing daily by 1.20, w/dim factor of 0.994.
+1,638 active cases, as of 25 Mar 2020.
+Projection: recovering will start in 38 days with a peak of 18,999 cases before it.
+```
+
 ### Example: Out of Control
 
 When the status is "out of control", the control rate is not showed and the projection doesn't consider it and it's made entirely from the spread rate (1.36 below).
