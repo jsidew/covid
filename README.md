@@ -167,9 +167,9 @@ x = (r/s)^(1/(q-p))
 | (2) | 0.99 | (2) |
 | (3) | 1.05 | (3) |
 | (4) | 1.09 | (3) |
-| (5) | 1.14 | (4) |
-| (7) | 1.20 | (6) |
-| (7) | r >= 1.20 | (6) |
+| (6) | 1.14 | (4) |
+| (7) | 1.20 | (5) |
+| (7) | r >= 1.20 | (5) |
 
 ### Attributes
 
@@ -177,8 +177,8 @@ x = (r/s)^(1/(q-p))
 2. Resolving Slowly
 3. Under Control
 4. Barely Under Control
-5. Loosing Control
-6. Hard to Control
+5. Hard to Control
+6. Loosing Control
 7. Out of Control
 
 ### Forecast with Moving Rate
