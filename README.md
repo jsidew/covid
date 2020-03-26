@@ -143,4 +143,50 @@ Supported function, other than Golang standard ones, are
 
 ## Virus Control Scale (VCS) Algorithm Explained
 
-TODO
+### Variables
+* `c`: current number of (active) cases
+* `d`: number of cases in the past
+* `p`: the period (e.g. 5 days) between `c` and `d`
+* `e`: number of cases in a more remote past
+* `q`: the period between `c` and `e`
+
+```
+r = (c/d)^(1/p)
+s = (c/e)^(1/q)
+x = (r/s)^(1/(q-p))
+```
+* `r`: spread rate
+* `s`: spread rate from earlier cases
+* `x`: rate of rates, or control rate
+
+### The Scale
+
+| x >= 0.998 | r < of: | x < 0.998 |
+|------------|---------|-----------|
+| (1) | 0.94 | (1) |
+| (2) | 0.99 | (2) |
+| (3) | 1.05 | (3) |
+| (4) | 1.09 | (3) |
+| (5) | 1.14 | (4) |
+| (7) | 1.20 | (6) |
+| (7) | r >= 1.20 | (6) |
+
+### Attributes
+
+1. Resolving
+2. Resolving Slowly
+3. Under Control
+4. Barely Under Control
+5. Loosing Control
+6. Hard to Control
+7. Out of Control
+
+### Forecast with Moving Rate
+
+* `f`: cases in the future 
+* `z`: period in the future between `c` and `f`
+
+```
+
+f = c * r^z * x^((z*z+z)/2)
+```
