@@ -27,15 +27,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 
+	"github.com/jsidew/covid/pkg/calc"
 	"github.com/jsidew/covid/pkg/database"
+	"github.com/jsidew/covid/pkg/view"
 )
 
-var version = "1.0.0-beta.1"
+var version = "1.1.0-alpha.1"
 
 const (
 	cacheExpire = 8 * time.Hour
@@ -92,4 +95,129 @@ func exitif(err error) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+type country struct {
+	name string
+
+	days, compareDays uint8
+
+	now, since, compare date
+}
+
+func (c *country) FillView(v *view.View) error {
+	err := c.set()
+	if err != nil {
+		return err
+	}
+	pre, start, last, err := c.cases()
+	if err != nil {
+		return err
+	}
+
+	r := calc.Rate(float64(start), float64(last), float64(c.days))
+	f := calc.Forecast(float64(last), r, fcastDays)
+	good := calc.Period(float64(last), 1, r)
+
+	var growth string
+	g := (f/float64(last) - 1) * 100
+	if g > 0 {
+		growth = "+"
+	}
+	growth = fmt.Sprintf("%s%.0f%%", growth, g)
+
+	v.Country = strings.ToTitle(c.name)
+	v.Updated = c.now.Time()
+	v.Current.Rate = r
+	v.Current.Cases = int(last)
+	v.Recovery.DaysTo1 = good
+	v.Forecast.Cases = f
+	v.Forecast.Days = fcastDays
+	v.Forecast.Growth = growth
+	{
+		r2 := calc.Rate(float64(pre), float64(last), float64(c.compareDays))
+		r3 := calc.Rate(r2, r, float64(c.compareDays-c.days))
+		recovery := calc.Period(r, 0.94, r3)
+		peak := calc.Period(r, 1, r3)
+		peakCases := calc.Forecast3D(float64(last), r, r3, peak)
+
+		v.Comparison.Rate = r2
+		v.Comparison.RateOfRates = r3
+		v.Recovery.DaysToStart = recovery
+		v.Recovery.DaysToPeak = peak
+		v.Recovery.PeakCases = peakCases
+
+		improving := r3 < 0.998
+		status := view.OutOfControl
+
+		if r < 0.94 {
+			status = view.Resolving
+		} else if r < 0.99 {
+			status = view.ResolvingSlowly
+		} else if r < 1.05 || (r < 1.09 && improving) {
+			status = view.UnderControl
+		} else if (r < 1.09 && !improving) || (r < 1.14 && improving) {
+			status = view.BarelyUnderControl
+		} else if r < 1.14 && !improving {
+			status = view.LoosingControl
+		} else if improving {
+			status = view.HardToControl
+		}
+
+		v.Status.Score = status
+		v.Status.Resolving = status == view.Resolving || status == view.ResolvingSlowly
+		v.Status.Improving = improving && !v.Status.Resolving
+
+	}
+	return nil
+}
+
+func (c *country) set() error {
+	// setting dates
+	if t, err := db.Latest(); err != nil {
+		return err
+	} else {
+		c.now = date(t)
+	}
+	if c.since.Time().IsZero() && c.days > 0 {
+		c.since = c.now.AddDays(-int(c.days))
+	}
+	if !c.since.Time().IsZero() && c.days == 0 {
+		c.days = c.now.DaysSince(c.since)
+	}
+	if c.compare.Time().IsZero() && c.compareDays == 0 {
+		c.compareDays = c.days * 2
+	}
+	if c.compare.Time().IsZero() && c.compareDays > 0 {
+		c.compare = c.now.AddDays(-int(c.compareDays))
+	}
+	if !c.compare.Time().IsZero() && c.compareDays == 0 {
+		c.compareDays = c.now.DaysSince(c.compare)
+	}
+
+	// setting country name
+	if c.name == "" {
+		c.name = "world"
+	}
+
+	return nil
+}
+
+func (c *country) cases() (pre, start, last int, err error) {
+	country := c.name
+	if strings.EqualFold(country, "world") {
+		country = ""
+	}
+	last, err = db.ActiveCases(country, c.now.Time())
+	if err != nil {
+		return
+	}
+	start, err = db.ActiveCases(country, c.since.Time())
+	if err != nil {
+		return
+	}
+	if !c.compare.Time().IsZero() {
+		pre, err = db.ActiveCases(country, c.compare.Time())
+	}
+	return
 }

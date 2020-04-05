@@ -23,14 +23,12 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/jsidew/covid/pkg/calc"
 	"github.com/jsidew/covid/pkg/view"
 )
 
@@ -42,7 +40,9 @@ const (
 type date time.Time
 
 func init() {
-	c := &statusCmd{}
+	c := &statusCmd{
+		days: 7,
+	}
 	cmd := &cobra.Command{
 		Use:   "status [COUNTRY]",
 		Short: "Prints a tweet-long message about COVID-19 situation of the selected COUNTRY",
@@ -54,8 +54,8 @@ to print the status of the whole world, either set COUNTRY to "world" or leave i
 		Args: cobra.MaximumNArgs(1),
 	}
 	flags := cmd.Flags()
-	flags.Uint8VarP(&c.days, "days", "d", 7, "estimate for the last n days, define either this or --since")
-	flags.Uint8VarP(&c.compareDays, "compareDays", "c", 0, "coparison estimate for the last n days, define either this or --compareSince (default is twice --days)")
+	flags.Uint8VarP(&c.days, "days", "d", c.days, "estimate for the last n days, define either this or --since")
+	flags.Uint8VarP(&c.compareDays, "compareDays", "c", c.compareDays, "coparison estimate for the last n days, define either this or --compareSince (default is twice --days)")
 	flags.VarP(&c.since, "since", "s", "when to start the estimate with format: "+dateLayout+", define either this or --days")
 	flags.VarP(&c.compare, "compareSince", "a", "when to start the comparison estimate with format: "+dateLayout+", define either this or --compareDays")
 	rootCmd.AddCommand(cmd)
@@ -73,126 +73,27 @@ func (c *statusCmd) run(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = c.set(args)
+	if len(args) > 0 {
+		c.country = strings.TrimSpace(args[0])
+	}
+
+	country := &country{
+		name:        c.country,
+		days:        c.days,
+		compareDays: c.compareDays,
+		now:         c.now,
+		since:       c.since,
+		compare:     c.compare,
+	}
+
+	err = country.FillView(v)
 	if err != nil {
 		return err
-	}
-
-	pre, start, last, err := c.cases()
-	if err != nil {
-		return err
-	}
-
-	r := calc.Rate(float64(start), float64(last), float64(c.days))
-	f := calc.Forecast(float64(last), r, fcastDays)
-	good := calc.Period(float64(last), 1, r)
-
-	var growth string
-	g := (f/float64(last) - 1) * 100
-	if g > 0 {
-		growth = "+"
-	}
-	growth = fmt.Sprintf("%s%.0f%%", growth, g)
-
-	v.Country = strings.ToTitle(c.country)
-	v.Updated = c.now.Time()
-	v.Current.Rate = r
-	v.Current.Cases = int(last)
-	v.Recovery.DaysTo1 = good
-	v.Forecast.Cases = f
-	v.Forecast.Days = fcastDays
-	v.Forecast.Growth = growth
-	{
-		r2 := calc.Rate(float64(pre), float64(last), float64(c.compareDays))
-		r3 := calc.Rate(r2, r, float64(c.compareDays-c.days))
-		recovery := calc.Period(r, 0.94, r3)
-		peak := calc.Period(r, 1, r3)
-		peakCases := calc.Forecast3D(float64(last), r, r3, peak)
-
-		v.Comparison.Rate = r2
-		v.Comparison.RateOfRates = r3
-		v.Recovery.DaysToStart = recovery
-		v.Recovery.DaysToPeak = peak
-		v.Recovery.PeakCases = peakCases
-
-		improving := r3 < 0.998
-		status := view.OutOfControl
-
-		if r < 0.94 {
-			status = view.Resolving
-		} else if r < 0.99 {
-			status = view.ResolvingSlowly
-		} else if r < 1.05 || (r < 1.09 && improving) {
-			status = view.UnderControl
-		} else if (r < 1.09 && !improving) || (r < 1.14 && improving) {
-			status = view.BarelyUnderControl
-		} else if r < 1.14 && !improving {
-			status = view.LoosingControl
-		} else if improving {
-			status = view.HardToControl
-		}
-
-		v.Status.Score = status
-		v.Status.Resolving = status == view.Resolving || status == view.ResolvingSlowly
-		v.Status.Improving = improving && !v.Status.Resolving
-
 	}
 
 	err = v.Execute(os.Stdout)
 
 	return err
-}
-
-func (c *statusCmd) set(args []string) error {
-	// setting dates
-	if t, err := db.Latest(); err != nil {
-		return err
-	} else {
-		c.now = date(t)
-	}
-	if c.since.Time().IsZero() && c.days > 0 {
-		c.since = c.now.AddDays(-int(c.days))
-	}
-	if !c.since.Time().IsZero() && c.days == 0 {
-		c.days = c.now.DaysSince(c.since)
-	}
-	if c.compare.Time().IsZero() && c.compareDays == 0 {
-		c.compareDays = c.days * 2
-	}
-	if c.compare.Time().IsZero() && c.compareDays > 0 {
-		c.compare = c.now.AddDays(-int(c.compareDays))
-	}
-	if !c.compare.Time().IsZero() && c.compareDays == 0 {
-		c.compareDays = c.now.DaysSince(c.compare)
-	}
-
-	// setting country
-	if len(args) > 0 {
-		c.country = strings.TrimSpace(args[0])
-	} else {
-		c.country = "world"
-	}
-
-	return nil
-}
-
-func (c *statusCmd) cases() (pre, start, last int, err error) {
-	country := c.country
-	if strings.EqualFold(country, "world") {
-		country = ""
-	}
-	last, err = db.ActiveCases(country, c.now.Time())
-	if err != nil {
-		return
-	}
-	start, err = db.ActiveCases(country, c.since.Time())
-	if err != nil {
-		return
-	}
-	if !c.compare.Time().IsZero() {
-		pre, err = db.ActiveCases(country, c.compare.Time())
-	}
-	return
 }
 
 func (d date) Time() time.Time {
